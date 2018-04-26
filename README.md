@@ -19,3 +19,6 @@ python3 model.py --mode MODE
 ```
 
 ## Some cool screenshots:
+![Figure0](https://github.com/nimrodshn/cluster-learn/blob/master/figures/result11.png)
+![Figure1](https://github.com/nimrodshn/cluster-learn/blob/master/figures/result9.png)
+![Figure2](https://github.com/nimrodshn/cluster-learn/blob/master/figures/result2.png)
