@@ -10,7 +10,6 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
 import argparse
 
 TSLENGTH = 10
@@ -34,7 +33,6 @@ def main():
     elif args.mode == 'test':
         model = load_model('lstm.h5')
         predictions = evaluate_predictions(model)
-        inverted_predictions = inverse_transform(predictions)
         plot_predictions(predictions)
 
 # Create a time series dataset from the fastStorage dataset. (See README)
