@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 import json
 import requests
 import keras
@@ -19,4 +21,5 @@ def main():
             print("amount of points: " + str(len(result)))
 
 
-main()
+if __name__ == "__main__":
+    main()
