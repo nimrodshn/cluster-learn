@@ -132,7 +132,8 @@ def train_model(nb_epoch, nb_batch):
 
 
 def predictUsingModel(model, sample):
-        # reshape input pattern to [samples, timesteps, features]
+    """Reshape input pattern to [samples, timesteps, features]
+    """
     sample = sample.reshape(1, 1, len(sample))
     # make forecast
     prediction = model.predict(sample, batch_size=BATCH_SIZE)
@@ -186,14 +187,20 @@ def inverse_transform(predictions):
 def scale_data(dfX, dfY):
     scaler = MinMaxScaler(feature_range=(-1, 1))
 
-    scaled_input = scaler.fit_transform(dfX)
-    scaled_labels = scaler.fit_transform(dfY)
+    # Use input and labels to calc min and max.
+    scaler.partial_fit(dfX)
+    scaler.partial_fit(dfY)
+
+    # Transform input and labels using same ratio.
+    scaled_input = scaler.transform(dfX)
+    scaled_labels = scaler.transform(dfY)
 
     return scaled_input, scaled_labels, scaler
 
 
 def plot_predictions(predictions):
-        # plot the entire dataset in blue
+    """Plot the entire dataset in blue
+    """
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
