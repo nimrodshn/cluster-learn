@@ -1,4 +1,5 @@
-import csv
+#!/bin/env python3
+
 import os
 import pandas as pd
 import numpy as np
@@ -21,21 +22,26 @@ NUMBER_OF_EPOCHS = 1
 BATCH_SIZE = 1
 ERR_THRESHOLD = 0.7
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", help="mode to run the model. options: [train, test]")
+    parser.add_argument(
+        "--mode",
+        help="mode to run the model. options: [train, test]")
     args = parser.parse_args()
     if args.mode == 'train':
         print("Creating data....")
         create_data()
         print("Fitting Model...")
-        model = train_model(nb_epoch=NUMBER_OF_EPOCHS,nb_batch=BATCH_SIZE)
+        model = train_model(nb_epoch=NUMBER_OF_EPOCHS, nb_batch=BATCH_SIZE)
     elif args.mode == 'test':
         model = load_model('lstm.h5')
         predictions = evaluate_predictions(model)
         plot_predictions(predictions)
 
 # Create a time series dataset from the fastStorage dataset. (See README)
+
+
 def create_data():
     files = os.listdir('../data/')
     dataX = []
@@ -44,7 +50,7 @@ def create_data():
     for filename in files:
         path = '../data/' + filename
         print("opening file:  " + path)
-        df =  pd.read_csv(path,sep=';', header=0)
+        df = pd.read_csv(path, sep=';', header=0)
         df = df['\tCPU usage [%]']
         numOfRows = df.shape[0]
         numOfIterations = int(np.floor(numOfRows / TSLENGTH))
@@ -52,9 +58,10 @@ def create_data():
         for idx in range(numOfIterations):
             inputStart = idx * TSLENGTH
             print("writing row: " + str(idx))
-            print("starting at: " + str(inputStart) + "and ending at " + str(inputStart + INPUT_LENGTH))
-            tsInput = df[inputStart:inputStart+INPUT_LENGTH]
-            tsOutput = df[inputStart+INPUT_LENGTH:inputStart+TSLENGTH]
+            print("starting at: " + str(inputStart) +
+                  "and ending at " + str(inputStart + INPUT_LENGTH))
+            tsInput = df[inputStart:inputStart + INPUT_LENGTH]
+            tsOutput = df[inputStart + INPUT_LENGTH:inputStart + TSLENGTH]
             dataX.append(tsInput)
             dataY.append(tsOutput)
 
@@ -68,24 +75,26 @@ def create_data():
     np.savetxt('../raw_input.csv', dfX, delimiter=",")
     np.savetxt('../raw_label.csv', dfY, delimiter=",")
 
-def split_data(type, inputData , labelData):
+
+def split_data(type, inputData, labelData):
     numOfRows = inputData.shape[0]
 
     if type == 'training':
-        trainX = inputData[:int(numOfRows*TRAINING_FRACTION)]
-        trainY = labelData[:int(numOfRows*TRAINING_FRACTION)]
+        trainX = inputData[:int(numOfRows * TRAINING_FRACTION)]
+        trainY = labelData[:int(numOfRows * TRAINING_FRACTION)]
         return trainX, trainY
 
     if type == 'test':
-        testX = inputData[int(numOfRows*TRAINING_FRACTION):]
-        testY = labelData[int(numOfRows*TRAINING_FRACTION):]
+        testX = inputData[int(numOfRows * TRAINING_FRACTION):]
+        testY = labelData[int(numOfRows * TRAINING_FRACTION):]
         return testX, testY
+
 
 def train_model(nb_epoch, nb_batch):
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
-    scaled_input, scaled_labels, _ = scale_data(dfX,dfY)
+    scaled_input, scaled_labels, _ = scale_data(dfX, dfY)
 
     # Sanity check
     print("Input Shape: " + str(scaled_input.shape))
@@ -97,34 +106,49 @@ def train_model(nb_epoch, nb_batch):
     trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
 
     model = Sequential()
-    model.add(LSTM(1, batch_input_shape=(nb_batch, trainX.shape[1], trainX.shape[2]), stateful=True))
+    model.add(
+        LSTM(
+            1,
+            batch_input_shape=(
+                nb_batch,
+                trainX.shape[1],
+                trainX.shape[2]),
+            stateful=True))
     model.add(Dense(OUTPUT_LENGTH))
     model.compile(loss='mean_squared_error', optimizer='adam')
 
     for i in range(nb_epoch):
-	    model.fit(trainX, trainY, epochs=1, batch_size=1, verbose=1, shuffle=False)
-	    model.reset_states()
+        model.fit(
+            trainX,
+            trainY,
+            epochs=1,
+            batch_size=1,
+            verbose=1,
+            shuffle=False)
+        model.reset_states()
 
     model.save('lstm.h5')
     return model
 
+
 def predictUsingModel(model, sample):
-	# reshape input pattern to [samples, timesteps, features]
+        # reshape input pattern to [samples, timesteps, features]
     sample = sample.reshape(1, 1, len(sample))
-	# make forecast
+    # make forecast
     prediction = model.predict(sample, batch_size=BATCH_SIZE)
-	# convert to array
+    # convert to array
     return [x for x in prediction[0, :]]
+
 
 def evaluate_predictions(model):
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
-    scaled_input, scaled_labels, _ = scale_data(dfX,dfY)
+    scaled_input, scaled_labels, _ = scale_data(dfX, dfY)
 
     testX, testY = split_data('test', scaled_input, scaled_labels)
     predictions = list()
-	# make prediction
+    # make prediction
     for sample in testX:
         prediction = predictUsingModel(model, sample)
         predictions.append(prediction)
@@ -134,11 +158,12 @@ def evaluate_predictions(model):
     # compute avg error:
     rmse = 0
     for i in range(testY.shape[0]):
-        rmse += sqrt(mean_squared_error(testY[i,:], predictions[i]))
+        rmse += sqrt(mean_squared_error(testY[i, :], predictions[i]))
 
     print('RMSE:' + str(rmse / testY.shape[0]))
 
     return predictions
+
 
 def inverse_transform(predictions):
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
@@ -157,27 +182,31 @@ def inverse_transform(predictions):
         inverted.append(inv_scale)
     return inverted
 
-def scale_data(dfX,dfY):
-    scaler = MinMaxScaler(feature_range=(-1,1))
+
+def scale_data(dfX, dfY):
+    scaler = MinMaxScaler(feature_range=(-1, 1))
 
     scaled_input = scaler.fit_transform(dfX)
     scaled_labels = scaler.fit_transform(dfY)
 
     return scaled_input, scaled_labels, scaler
 
+
 def plot_predictions(predictions):
-	# plot the entire dataset in blue
+        # plot the entire dataset in blue
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
     testX, testY = split_data('test', dfX, dfY)
 
     for i in range(len(predictions)):
-        err = sqrt(mean_squared_error(testY[i,:], predictions[i]))
-        if  err < ERR_THRESHOLD:
-            plt.plot(np.append(testX[i,:], predictions[i]), color='red')
-            plt.plot(np.append(testX[i,:], testY[i,:]))
+        err = sqrt(mean_squared_error(testY[i, :], predictions[i]))
+        if err < ERR_THRESHOLD:
+            plt.plot(np.append(testX[i, :], predictions[i]), color='red')
+            plt.plot(np.append(testX[i, :], testY[i, :]))
 
         plt.show()
 
-main()
+
+if __name__ == "__main__":
+    main()
