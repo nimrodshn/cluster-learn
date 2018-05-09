@@ -1,7 +1,5 @@
 #!/bin/env python3
 
-import os
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
@@ -12,6 +10,8 @@ from keras.layers import LSTM
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import argparse
+
+from create_data import create_data
 
 TSLENGTH = 10
 INPUT_LENGTH = 7
@@ -38,42 +38,6 @@ def main():
         model = load_model('lstm.h5')
         predictions = evaluate_predictions(model)
         plot_predictions(predictions)
-
-# Create a time series dataset from the fastStorage dataset. (See README)
-
-
-def create_data():
-    files = os.listdir('../data/')
-    dataX = []
-    dataY = []
-
-    for filename in files:
-        path = '../data/' + filename
-        print("opening file:  " + path)
-        df = pd.read_csv(path, sep=';', header=0)
-        df = df['\tCPU usage [%]']
-        numOfRows = df.shape[0]
-        numOfIterations = int(np.floor(numOfRows / TSLENGTH))
-        print("number of iterations:" + str(numOfIterations))
-        for idx in range(numOfIterations):
-            inputStart = idx * TSLENGTH
-            print("writing row: " + str(idx))
-            print("starting at: " + str(inputStart) +
-                  "and ending at " + str(inputStart + INPUT_LENGTH))
-            tsInput = df[inputStart:inputStart + INPUT_LENGTH]
-            tsOutput = df[inputStart + INPUT_LENGTH:inputStart + TSLENGTH]
-            dataX.append(tsInput)
-            dataY.append(tsOutput)
-
-    dfX = np.asarray(dataX)
-    dfY = np.asarray(dataY)
-
-    # Sanity check
-    print("Input shape: " + dfX.shape)
-    print("Label shape: " + dfY.shape)
-
-    np.savetxt('../raw_input.csv', dfX, delimiter=",")
-    np.savetxt('../raw_label.csv', dfY, delimiter=",")
 
 
 def split_data(type, inputData, labelData):
@@ -132,7 +96,8 @@ def train_model(nb_epoch, nb_batch):
 
 
 def predictUsingModel(model, sample):
-        # reshape input pattern to [samples, timesteps, features]
+    """Reshape input pattern to [samples, timesteps, features]
+    """
     sample = sample.reshape(1, 1, len(sample))
     # make forecast
     prediction = model.predict(sample, batch_size=BATCH_SIZE)
@@ -193,7 +158,8 @@ def scale_data(dfX, dfY):
 
 
 def plot_predictions(predictions):
-        # plot the entire dataset in blue
+    """Plot the entire dataset in blue
+    """
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
