@@ -1,15 +1,15 @@
 #!/bin/env python3
 
+import argparse
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error
 from math import sqrt
+from sklearn.metrics import mean_squared_error
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
 from keras.models import load_model
-from sklearn.preprocessing import MinMaxScaler
-import argparse
 
 from create_data import create_data
 
@@ -58,13 +58,11 @@ def train_model(nb_epoch, nb_batch):
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
-    scaled_input, scaled_labels, _ = scale_data(dfX, dfY)
-
     # Sanity check
-    print("Input Shape: " + str(scaled_input.shape))
-    print("Label shape: " + str(scaled_labels.shape))
+    print("Input Shape: " + str(dfX.shape))
+    print("Label shape: " + str(dfY.shape))
 
-    trainX, trainY = split_data('training', scaled_input, scaled_labels)
+    trainX, trainY = split_data('training', dfX, dfY)
 
     # reshape data from [samples, features] to [samples, timesteps, features]
     trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
@@ -109,16 +107,18 @@ def evaluate_predictions(model):
     dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
     dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
 
-    scaled_input, scaled_labels, _ = scale_data(dfX, dfY)
+    file = open("../data.meta", 'rb')
+    [min, max] = pickle.load(file)
+    file.close()
 
-    testX, testY = split_data('test', scaled_input, scaled_labels)
+    testX, testY = split_data('test', dfX, dfY)
     predictions = list()
     # make prediction
     for sample in testX:
         prediction = predictUsingModel(model, sample)
         predictions.append(prediction)
 
-    predictions = inverse_transform(predictions)
+    predictions = inverse_transform(predictions, min, max)
 
     # compute avg error:
     rmse = 0
@@ -130,36 +130,8 @@ def evaluate_predictions(model):
     return predictions
 
 
-def inverse_transform(predictions):
-    dfX = np.genfromtxt('../raw_input.csv', delimiter=',')
-    dfY = np.genfromtxt('../raw_label.csv', delimiter=',')
-    _, _, scaler = scale_data(dfX, dfY)
-
-    inverted = list()
-    for i in range(len(predictions)):
-        # create array from predictions
-        prediction = np.array(predictions[i])
-        prediction = prediction.reshape(1, len(prediction))
-        # invert scaling
-        inv_scale = scaler.inverse_transform(prediction)
-        inv_scale = inv_scale[0, :]
-        # store
-        inverted.append(inv_scale)
-    return inverted
-
-
-def scale_data(dfX, dfY):
-    scaler = MinMaxScaler(feature_range=(-1, 1))
-
-    # Use input and labels to calc min and max.
-    scaler.partial_fit(dfX)
-    scaler.partial_fit(dfY)
-
-    # Transform input and labels using same ratio.
-    scaled_input = scaler.transform(dfX)
-    scaled_labels = scaler.transform(dfY)
-
-    return scaled_input, scaled_labels, scaler
+def inverse_transform(predictions, min, max):
+    return ((np.array(predictions) + 1) * (max - min) / 2) + min
 
 
 def plot_predictions(predictions):
