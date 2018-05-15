@@ -20,51 +20,49 @@ def create_data(
         output_path=OUTPUT_PATH,
         col_name=COL_NAME,
         tslength=TSLENGTH,
-        input_length=INPUT_LENGTH,
-        max_data_files=MAX_DATA_FILES):
+        input_length=INPUT_LENGTH):
     """Create a time series dataset from the fastStorage dataset. (See README)
     """
     files = os.listdir(data_path)
-    dataX = []
-    dataY = []
-    min = math.inf
-    max = 0
+    data_x = []
+    data_y = []
+    min_x = math.inf
+    max_x = 0
 
-    for filename in files[:max_data_files]:
+    for filename in files[:MAX_DATA_FILES]:
         path = data_path + filename
 
         print("opening file:  " + path)
-        df = pd.read_csv(path, sep=';', header=0)
-        df = df[col_name]
+        dframe = pd.read_csv(path, sep=';', header=0)
+        dframe = dframe[col_name]
 
-        max = np.max([max, np.max(df)])
-        min = np.min([min, np.min(df)])
+        max_x = np.max([max_x, np.max(dframe)])
+        min_x = np.min([min_x, np.min(dframe)])
 
-        numOfRows = df.shape[0]
-        numOfOutputRows = numOfRows - TSLENGTH
+        num_of_rows = dframe.shape[0]
+        num_of_output_rows = num_of_rows - tslength
 
-        for idx in range(numOfOutputRows):
-            print("  %s [%05d:%05d]" % (filename, idx, numOfOutputRows))
+        for idx in range(num_of_output_rows):
+            print("  %s [%05d:%05d]" % (filename, idx, num_of_output_rows))
 
-            dataX.append(df[idx:idx + INPUT_LENGTH])
-            dataY.append(df[idx + INPUT_LENGTH:idx + TSLENGTH])
+            data_x.append(dframe[idx:idx + input_length])
+            data_y.append(dframe[idx + input_length:idx + tslength])
 
-    dfX = np.asarray(dataX)
-    dfY = np.asarray(dataY)
+    df_x = np.asarray(data_x)
+    df_y = np.asarray(data_y)
 
-    dfX = 2.0 * (dfX - min) / (max - min) - 1.0
-    dfY = 2.0 * (dfY - min) / (max - min) - 1.0
+    df_x = 2.0 * (df_x - min_x) / (max_x - min_x) - 1.0
+    df_y = 2.0 * (df_y - min_x) / (max_x - min_x) - 1.0
 
     # Sanity check
-    print("Input shape: %s" % str(dfX.shape))
-    print("Label shape: %s" % str(dfY.shape))
+    print("Input shape: %s" % str(df_x.shape))
+    print("Label shape: %s" % str(df_y.shape))
 
-    np.savetxt(output_path + 'raw_input.csv', dfX, delimiter=",")
-    np.savetxt(output_path + 'raw_label.csv', dfY, delimiter=",")
+    np.savetxt(output_path + 'raw_input.csv', df_x, delimiter=",")
+    np.savetxt(output_path + 'raw_label.csv', df_y, delimiter=",")
 
-    fd = open(output_path + "data.meta", "wb")
-    pickle.dump([min, max], fd)
-    fd.close()
+    with open(output_path + "data.meta", "wb") as fd:
+        pickle.dump([min_x, max_x], fd)
 
 
 if __name__ == "__main__":
